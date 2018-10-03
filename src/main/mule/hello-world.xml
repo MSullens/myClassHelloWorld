@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ccfdf446-9829-4cdc-b99a-41c0df8b3264" >
+		<http:listener-connection host="${http.host}" port="${http.port}" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="4df77345-b337-4393-b407-ae54edabf405" file="app-config.yaml" />
+	<flow name="hello-worldFlow" doc:id="0fb561e8-590e-45c0-aa0b-50a5fb729f75" >
+		<http:listener doc:name="Listener" doc:id="3ef5a068-8125-40c3-88e9-46e2b58c1028" config-ref="HTTP_Listener_config" path="/hello/{mascotType}" allowedMethods="POST"/>
+		<set-variable value="#[attributes.queryParams.'mascotName']" doc:name="Set Variable" doc:id="610d9f59-434a-4098-af56-90aca5b19665" variableName="mascotName"/>
+		<set-variable value="#[attributes.uriParams.'mascotType']" doc:name="Set Variable" doc:id="8ac07c92-a405-40ca-9080-317c943b7c40" variableName="mascotType"/>
+		<set-variable value="#[attributes.headers.'color']" doc:name="Set Variable" doc:id="f120ec31-3a27-4141-9588-83399bbfdc1e" variableName="mascotColor"/>
+		<ee:transform doc:name="Transform Message" doc:id="3f62ac3d-02c0-4f94-a437-eaf48a0833a4" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="mascotProps" ><![CDATA[%dw 2.0
+output application/java
+---
+otherVars: {
+    mascotType: attributes.uriParams.'mascotType',
+    mascotColor2: attributes.headers.'color' default 'Red'
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<set-payload value="#[output application/json ---
+{
+	greeting : payload.greeting,
+    lastName : payload.'lastName',
+    mascotName : vars.mascotName,
+    mascotType : vars.mascotType,
+    mascotProps :  vars.mascotProps.otherVars.mascotType,
+    mascotColor : vars.mascotColor,
+    mascotColor2  :  vars.mascotProps.otherVars.mascotColor2,
+    curDate: now(),
+    formatDate: now() as Date
+}]" doc:name="Set Payload" doc:id="9ccc00bf-cbd7-41c8-8901-89c236e9944f" />
+		<logger level="INFO" doc:name="Logger" doc:id="75df1d01-3f80-4c3b-94b3-8a93af3c9837" message="#[message.payload]"/>
+	</flow>
+</mule>
